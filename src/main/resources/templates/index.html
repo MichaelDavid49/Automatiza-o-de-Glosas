@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Glosa Automatica</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: #f0f4f8; color: #333; }
+
+        .header {
+            background: #1a5276; color: white; padding: 16px 32px;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .header h1 { font-size: 1.4rem; }
+        .header span { font-size: 0.85rem; opacity: 0.8; }
+
+        .main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+
+        .card {
+            background: white; border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1); padding: 24px; margin-bottom: 20px;
+        }
+        .card h2 { font-size: 1rem; color: #1a5276; margin-bottom: 16px;
+            border-bottom: 2px solid #d6e4f0; padding-bottom: 8px; }
+
+        .upload-area {
+            border: 2px dashed #aab7d4; border-radius: 8px;
+            padding: 32px; text-align: center; cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .upload-area:hover { border-color: #1a5276; }
+        .upload-area input[type=file] { display: none; }
+        .upload-area label { cursor: pointer; color: #1a5276; font-weight: bold; }
+        .upload-area p { color: #666; font-size: 0.85rem; margin-top: 8px; }
+        #nome-arquivo { margin-top: 10px; font-size: 0.9rem; color: #2e86c1; font-weight: bold; }
+
+        .form-row { display: flex; gap: 12px; align-items: flex-end; margin-top: 16px; }
+        .form-row input[type=text] {
+            flex: 1; padding: 8px 12px; border: 1px solid #ccd6e0;
+            border-radius: 6px; font-size: 0.9rem;
+        }
+        .form-row label { font-size: 0.85rem; color: #555; display: block; margin-bottom: 4px; }
+
+        .btn {
+            background: #1a5276; color: white; border: none; padding: 10px 24px;
+            border-radius: 6px; font-size: 0.95rem; cursor: pointer; transition: background 0.2s;
+        }
+        .btn:hover { background: #154360; }
+        .btn:disabled { background: #aaa; cursor: not-allowed; }
+
+        .alert-erro {
+            background: #fadbd8; border: 1px solid #e74c3c;
+            color: #922b21; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px;
+        }
+
+        .resumo-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;
+        }
+        .resumo-card {
+            border-radius: 8px; padding: 16px; text-align: center;
+        }
+        .resumo-card.total  { background: #eaf0fb; border: 1px solid #aab7d4; }
+        .resumo-card.ok     { background: #eafaf1; border: 1px solid #82e0aa; }
+        .resumo-card.block  { background: #fef9e7; border: 1px solid #f9e79f; }
+        .resumo-card .num   { font-size: 2rem; font-weight: bold; }
+        .resumo-card.ok .num { color: #1e8449; }
+        .resumo-card.block .num { color: #b7950b; }
+        .resumo-card .label { font-size: 0.8rem; color: #666; margin-top: 4px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        thead th {
+            background: #1a5276; color: white; padding: 10px 8px;
+            text-align: left; position: sticky; top: 0;
+        }
+        tbody tr:nth-child(even) { background: #f7f9fc; }
+        tbody tr:hover { background: #d6e4f0; }
+        tbody td { padding: 8px; border-bottom: 1px solid #e8edf2; vertical-align: middle; }
+
+        .badge {
+            display: inline-block; padding: 3px 8px; border-radius: 12px;
+            font-size: 0.75rem; font-weight: bold;
+        }
+        .badge.total    { background: #1a5276; color: white; }
+        .badge.parcial  { background: #2e86c1; color: white; }
+        .badge.ok       { background: #1e8449; color: white; }
+        .badge.bloqueado { background: #b03a2e; color: white; }
+
+        .table-wrapper { overflow-x: auto; max-height: 420px; overflow-y: auto; }
+
+        .historico-lista { list-style: none; }
+        .historico-lista li {
+            padding: 10px 12px; border-bottom: 1px solid #e8edf2;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.88rem;
+        }
+        .historico-lista li:hover { background: #f0f4f8; }
+        .historico-lista a { color: #1a5276; text-decoration: none; font-weight: bold; }
+        .historico-lista a:hover { text-decoration: underline; }
+        .historico-lista .meta { color: #888; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div>
+        <h1>&#9881; Modulo Glosa Automatica</h1>
+        <span>Cooperativa Medica &mdash; Importacao e Processamento de Glosas</span>
+    </div>
+</div>
+
+<div class="main">
+
+    <!-- MENSAGEM DE ERRO -->
+    <div th:if="${erro}" class="alert-erro">
+        <strong>Erro:</strong> <span th:text="${erro}"></span>
+    </div>
+
+    <!-- CARD DE UPLOAD -->
+    <div class="card">
+        <h2>&#128196; Importar Arquivo de Glosas</h2>
+        <form method="post" action="/importar" enctype="multipart/form-data">
+            <div class="upload-area" onclick="document.getElementById('arquivo').click()">
+                <input type="file" id="arquivo" name="arquivo" accept=".xlsx,.xls"
+                       onchange="document.getElementById('nome-arquivo').textContent = this.files[0]?.name || ''"/>
+                <label>&#128194; Clique para selecionar o arquivo Excel</label>
+                <p>Formato aceito: .xlsx ou .xls &mdash; Colunas A-G obrigatorias</p>
+                <div id="nome-arquivo"></div>
+            </div>
+            <div class="form-row">
+                <div style="flex:1">
+                    <label>Operador</label>
+                    <input type="text" name="operador" value="operador.faturamento" placeholder="Nome do operador"/>
+                </div>
+                <button type="submit" class="btn">&#9654; Processar</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- RESULTADO DO PROCESSAMENTO -->
+    <div th:if="${resultado}" class="card">
+        <h2>&#10003; Resultado do Processamento &mdash;
+            <span th:text="${resultado.nomeArquivo()}"></span>
+        </h2>
+
+        <div class="resumo-grid">
+            <div class="resumo-card total">
+                <div class="num" th:text="${resultado.totalLinhas()}">0</div>
+                <div class="label">Total de Linhas</div>
+            </div>
+            <div class="resumo-card ok">
+                <div class="num" th:text="${resultado.processadas()}">0</div>
+                <div class="label">Processadas</div>
+            </div>
+            <div class="resumo-card block">
+                <div class="num" th:text="${resultado.bloqueadas()}">0</div>
+                <div class="label">Bloqueadas</div>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Guia/Senha</th>
+                        <th>Data</th>
+                        <th>Procedimento</th>
+                        <th>Vl. Informado</th>
+                        <th>Vl. Pago</th>
+                        <th>Vl. Glosa</th>
+                        <th>% Glosa</th>
+                        <th>Tipo</th>
+                        <th>Situacao</th>
+                        <th>Motivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="item : ${resultado.itens()}">
+                        <td th:text="${item.guiaSenha()}"></td>
+                        <td th:text="${item.dataRealizacao()}"></td>
+                        <td th:text="${item.procedimento()}"></td>
+                        <td th:text="${#numbers.formatDecimal(item.valorInformado(), 1, 2)}"></td>
+                        <td th:text="${#numbers.formatDecimal(item.valorPago(), 1, 2)}"></td>
+                        <td th:text="${#numbers.formatDecimal(item.valorGlosa(), 1, 2)}"></td>
+                        <td th:if="${item.percentualGlosa() != null}"
+                            th:text="${#numbers.formatDecimal(item.percentualGlosa(), 1, 2) + '%'}"></td>
+                        <td th:if="${item.percentualGlosa() == null}">-</td>
+                        <td>
+                            <span th:if="${item.tipoGlosa() != null}"
+                                  th:class="${item.tipoGlosa().name() == 'TOTAL'} ? 'badge total' : 'badge parcial'"
+                                  th:text="${item.tipoGlosa()}"></span>
+                            <span th:if="${item.tipoGlosa() == null}">-</span>
+                        </td>
+                        <td>
+                            <span th:class="${item.situacao().name() == 'BLOQUEADA'} ? 'badge bloqueado' : 'badge ok'"
+                                  th:text="${item.situacao()}"></span>
+                        </td>
+                        <td>
+                            <span th:if="${item.situacao().name() == 'BLOQUEADA'}"
+                                  th:text="${item.motivoBloqueio()}" style="color:#b03a2e"></span>
+                            <span th:if="${item.situacao().name() != 'BLOQUEADA'}"
+                                  th:text="${item.motivoGlosa()}"></span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- HISTORICO -->
+    <div class="card" th:if="${not #lists.isEmpty(historico)}">
+        <h2>&#128203; Historico de Importacoes</h2>
+        <ul class="historico-lista">
+            <li th:each="h : ${historico}">
+                <div>
+                    <a th:href="@{/importacao/{id}(id=${h.id()})}"
+                       th:text="${h.nomeArquivo()}"></a>
+                    <span class="meta"
+                          th:text="${' — ' + h.operador() + ' — ' + h.dataImportacao()}"></span>
+                </div>
+                <div>
+                    <span class="badge ok" th:text="${h.processadas() + ' ok'}"></span>
+                    &nbsp;
+                    <span class="badge bloqueado" th:text="${h.bloqueadas() + ' bloq.'}"></span>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+</div>
+</body>
+</html>
